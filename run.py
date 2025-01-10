@@ -1,28 +1,22 @@
-def main():
-    TOKEN = '8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0'
-    PORT = 8443  # Cổng nội bộ của bot, không cần phải thay đổi
+from flask import Flask, jsonify
+import subprocess
 
-    # Tạo đối tượng Updater
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+app = Flask(__name__)
 
-    # Tải proxy khi bot khởi động
-    load_proxies()
-
-    # Đăng ký các lệnh
-    dp.add_handler(CommandHandler("on", start_bot))
-    dp.add_handler(CommandHandler("off", stop_bot))
-    dp.add_handler(CommandHandler("tang", tang))
-    dp.add_handler(MessageHandler(Filters.document, update_proxy))
-
-    # Khởi chạy webhook
-    updater.start_webhook(
-        listen="0.0.0.0",
-        port=int(PORT),
-        url_path=TOKEN,
-        webhook_url=f"https://api.telegram.org/bot8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0/getWebhookInfo"  # Đổi your-app-name thành tên ứng dụng Render của bạn
-    )
-    updater.idle()
+@app.route('/run-main', methods=['GET'])
+def run_main():
+    try:
+        # Chạy main.py
+        result = subprocess.run(['python', 'main.py'], capture_output=True, text=True)
+        return jsonify({
+            'status': 'success',
+            'message': result.stdout
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
 
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=5000)  # Mở cổng 5000
