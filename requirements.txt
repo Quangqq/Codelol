@@ -1,0 +1,7 @@
+python-telegram-bot==13.7
+requests==2.31.0
+telegram  
+psutil
+Updater  
+bs4  
+telebot 
