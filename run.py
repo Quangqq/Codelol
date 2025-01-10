@@ -20,7 +20,7 @@ def main():
         listen="0.0.0.0",
         port=int(PORT),
         url_path=TOKEN,
-        webhook_url=f"https://your-app-name.onrender.com/{TOKEN}"  # Đổi your-app-name thành tên ứng dụng Render của bạn
+        webhook_url=f"https://api.telegram.org/bot8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0/getWebhookInfo"  # Đổi your-app-name thành tên ứng dụng Render của bạn
     )
     updater.idle()
 
