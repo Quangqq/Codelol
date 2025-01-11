@@ -5,4 +5,4 @@ psutil==5.9.5
 beautifulsoup4==4.12.2
 pyTelegramBotAPI==4.12.0
 Flask
-urllib3==1.26.6.txt
+urllib3==1.26.6
