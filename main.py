@@ -188,7 +188,7 @@ def tang(update, context):
         else:
             update.message.reply_text("method không hợp lệ")
     except (IndexError, ValueError):
-        update.message.reply_text("Sai cú pháp. Sử dụng: /tang <method> <url> <time>")
+        update.message.reply_text("Sai cú pháp. Sử dụng: /attack <method> <url> <time>")
 
 # Hàm cập nhật proxy từ tệp
 def update_proxy(update: Update, context: CallbackContext):
@@ -208,7 +208,7 @@ def main():
     load_proxies()
     dp.add_handler(CommandHandler("on", start_bot))
     dp.add_handler(CommandHandler("off", stop_bot))
-    dp.add_handler(CommandHandler("tang", tang))
+    dp.add_handler(CommandHandler("attack", tang))
     dp.add_handler(MessageHandler(Filters.document, update_proxy))
     updater.start_polling()
     updater.idle()
