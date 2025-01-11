@@ -219,7 +219,7 @@ def update_proxy(update: Update, context: CallbackContext):
 
 # Hàm chính
 def main():
-    TOKEN = '8178485363:AAGzYzstr-C6Gj9A8sR2MguA70f5wPFg6Q0'
+    TOKEN = '7324016890:AAH3gyejK0484bnrvcqaDOti2t65kXPzYeU'
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     load_proxies()
