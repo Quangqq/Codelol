@@ -1,4 +1,7 @@
+const express = require("express");
 const axios = require("axios");
+
+const PORT = 4000; // Port để mở server
 
 // Danh sách API (tự động loại bỏ "/api" nếu có)
 const API_URL = [
@@ -10,6 +13,11 @@ const API_URL = [
     "https://quangdevclo.onrender.com/api",
     "https://codelol.onrender.com"
 ];
+
+// Khởi tạo server Express
+const app = express();
+app.get("/", (req, res) => res.send("🟢 Server đang chạy..."));
+app.listen(PORT, () => console.log(`🟢 Server đang chạy trên port ${PORT}`));
 
 // Hàm gọi API tự động mỗi 40 giây
 const autoCallAPI = async () => {
@@ -27,4 +35,4 @@ const autoCallAPI = async () => {
 // Thiết lập gọi API mỗi 40 giây
 setInterval(autoCallAPI, 40 * 1000);
 
-console.log("🟢 Chương trình tự động gọi API đang chạy...");
+console.log("🟢 Chương trình tự động gọi API + mở port đang chạy...");
