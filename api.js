@@ -7,7 +7,8 @@ const API_URL = [
     "https://dos-ura.onrender.com/api",
     "https://dosbuoi.onrender.com/api",
     "https://dosflood.onrender.com/api",
-    "https://quangdevclo.onrender.com/api"
+    "https://quangdevclo.onrender.com/api",
+    "https://codelol.onrender.com"
 ];
 
 // Hàm gọi API tự động mỗi 40 giây
